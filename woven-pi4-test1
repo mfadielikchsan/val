@@ -1,0 +1,70 @@
+import requests
+import time
+import RPi.GPIO as GPIO
+
+# Konfigurasi GPIO
+BUTTON1 = 17  # MCWV01-2
+BUTTON2 = 27  # MCWV01-3
+BUTTON3 = 22  # MCWV01-4
+BUTTON4 = 5   # MCWV01-5
+BUTTON5 = 6   # MCWV01-6
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# Setup GPIO pins as input with pull-up resistors
+GPIO.setup(BUTTON1, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(BUTTON2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(BUTTON3, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(BUTTON4, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(BUTTON5, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# URL target
+url = "http://10.246.142.20/pdgeneral/kirim_data/sensor/"
+
+# Function to send data to the server
+def send_data(no_mc, distance):
+    param = f"?data={no_mc}&distance={distance}"
+    full_url = url + param
+    try:
+        response = requests.get(full_url, timeout=5)
+        response.raise_for_status()  # Raise an error for bad status codes
+        print(f"Data sent: {no_mc}, Distance: {distance}")
+    except requests.RequestException as e:
+        print(f"Failed to send data: {e}")
+
+# Variable to track the last sent state
+last_sent = None
+
+try:
+    while True:
+        # Read the state of buttons
+        button1_state = GPIO.input(BUTTON1)
+        button2_state = GPIO.input(BUTTON2)
+        button3_state = GPIO.input(BUTTON3)
+        button4_state = GPIO.input(BUTTON4)
+        button5_state = GPIO.input(BUTTON5)
+
+        # Priority: Check buttons and send data
+        if button1_state == GPIO.LOW and last_sent != "MCWV01-2":
+            send_data("MCWV01-2", 1)
+            last_sent = "MCWV01-2"
+        elif button3_state == GPIO.LOW and last_sent != "MCWV01-4":
+            send_data("MCWV01-4", 1)
+            last_sent = "MCWV01-4"
+        elif button4_state == GPIO.LOW and last_sent != "MCWV01-5":
+            send_data("MCWV01-5", 1)
+            last_sent = "MCWV01-5"
+        elif button5_state == GPIO.LOW and last_sent != "MCWV01-6":
+            send_data("MCWV01-6", 1)
+            last_sent = "MCWV01-6"
+        elif button2_state == GPIO.LOW and last_sent != "MCWV01-3":
+            send_data("MCWV01-3", 1)
+            last_sent = "MCWV01-3"
+
+        time.sleep(0.1)  # Debouncing delay
+
+except KeyboardInterrupt:
+    print("Program terminated by user.")
+finally:
+    GPIO.cleanup()
