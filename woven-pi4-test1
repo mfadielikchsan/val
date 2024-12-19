@@ -23,18 +23,15 @@ GPIO.setup(BUTTON5, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 url = "http://10.246.142.20/pdgeneral/kirim_data/sensor/"
 
 # Function to send data to the server
-def send_data(no_mc, distance):
-    param = f"?data={no_mc}&distance={distance}"
+def send_data(no_mc):
+    param = f"?data={no_mc}"
     full_url = url + param
     try:
         response = requests.get(full_url, timeout=5)
         response.raise_for_status()  # Raise an error for bad status codes
-        print(f"Data sent: {no_mc}, Distance: {distance}")
+        print(f"Data sent: {no_mc}")
     except requests.RequestException as e:
         print(f"Failed to send data: {e}")
-
-# Variable to track the last sent state
-last_sent = None
 
 try:
     while True:
@@ -45,24 +42,22 @@ try:
         button4_state = GPIO.input(BUTTON4)
         button5_state = GPIO.input(BUTTON5)
 
-        # Priority: Check buttons and send data
-        if button1_state == GPIO.LOW and last_sent != "MCWV01-2":
-            send_data("MCWV01-2", 1)
-            last_sent = "MCWV01-2"
-        elif button3_state == GPIO.LOW and last_sent != "MCWV01-4":
-            send_data("MCWV01-4", 1)
-            last_sent = "MCWV01-4"
-        elif button4_state == GPIO.LOW and last_sent != "MCWV01-5":
-            send_data("MCWV01-5", 1)
-            last_sent = "MCWV01-5"
-        elif button5_state == GPIO.LOW and last_sent != "MCWV01-6":
-            send_data("MCWV01-6", 1)
-            last_sent = "MCWV01-6"
-        elif button2_state == GPIO.LOW and last_sent != "MCWV01-3":
-            send_data("MCWV01-3", 1)
-            last_sent = "MCWV01-3"
+        # Check which button is pressed and send the corresponding data
+        if button1_state == GPIO.LOW:
+            send_data("MCWV01-2")
+        elif button3_state == GPIO.LOW:
+            send_data("MCWV01-4")
+        elif button4_state == GPIO.LOW:
+            send_data("MCWV01-5")
+        elif button5_state == GPIO.LOW:
+            send_data("MCWV01-6")
+        elif button2_state == GPIO.LOW:
+            send_data("MCWV01-3")
+        else:
+            # If no button is pressed, send data for motor off
+            send_data("MCWV01-7")
 
-        time.sleep(0.1)  # Debouncing delay
+        time.sleep(1)  # Send data every second
 
 except KeyboardInterrupt:
     print("Program terminated by user.")
