@@ -1,0 +1,56 @@
+import requests
+import time
+import RPi.GPIO as GPIO
+
+# Konfigurasi GPIO
+MT = 17
+WP = 27
+WC = 22
+MF = 5
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# Setup GPIO pins as input with pull-up resistors
+GPIO.setup(MT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(WP, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(WC, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(MF, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+
+try:
+    while True:
+        # Read the state of buttons
+        MT_state = GPIO.input(MT)
+        WP_state = GPIO.input(WP)
+        WC_state = GPIO.input(WC)
+        MF_state = GPIO.input(MF)
+        
+        if MT_state == GPIO.HIGH:
+            print("MT_state-HIGH")
+        else:
+            print("MT_state-LOW")
+            
+        if WP_state == GPIO.HIGH:
+            print("WP_state-HIGH")
+        else:
+            print("WP_state-LOW")
+            
+        if WC_state == GPIO.HIGH:
+            print("WC_state-HIGH")
+        else:
+            print("WC_state-LOW")
+            
+        if MF_state == GPIO.HIGH:
+            print("MF_state-HIGH")
+        else:
+            print("MF_state-LOW")
+
+        time.sleep(0.1)  
+
+except KeyboardInterrupt:
+    print("Program terminated by user.")
+finally:
+    GPIO.cleanup()
+
+
