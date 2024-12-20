@@ -1,0 +1,72 @@
+import requests
+import time
+import RPi.GPIO as GPIO
+
+# Konfigurasi GPIO
+MT = 17
+WP = 27
+WC = 22
+MF = 5
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# Setup GPIO pins as input with pull-up resistors
+GPIO.setup(MT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(WP, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(WC, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(MF, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# URL target
+url = "http://10.246.142.20/pdgeneral/kirim_data/sensor/" #pastiin ke alvin/fadiel
+
+# Function to send data to the server
+def send_data(no_mc):
+    param = f"?data={no_mc}"
+    full_url = url + param
+    try:
+        response = requests.get(full_url, timeout=5)
+        response.raise_for_status()  # Raise an error for bad status codes
+        print(f"Data sent: {no_mc}")
+    except requests.RequestException as e:
+        print(f"Failed to send data: {e}")
+        
+# Initialize previous state
+previous_data = None
+
+try:
+    while True:
+        # Read the state of buttons
+        MT_state = GPIO.input(MT)
+        WP_state = GPIO.input(WP)
+        WC_state = GPIO.input(WC)
+        MF_state = GPIO.input(MF)
+
+        # Check if BUTTON2 is not active
+        if MT_state == GPIO.HIGH:
+            # Check other buttons
+            if WP_state == GPIO.LOW:
+                current_data("MCWV01-2")
+            elif WC_state == GPIO.LOW:
+                current_data("MCWV01-4")
+            elif MF_state == GPIO.LOW:
+                current_data("MCWV01-5")
+            else:
+                # If no other button is active, send data for motor off
+                current_data("MCWV01-6")
+        else:
+            # If BUTTON2 is active
+            current_data("MCWV01-3")
+
+        # Send data only if it is different from the previous data
+        if current_data != previous_data:
+            send_data(current_data)
+            previous_data = current_data
+
+        time.sleep(0.1)  # Small delay to avoid excessive CPU usage
+
+except KeyboardInterrupt:
+    print("Program terminated by user.")
+finally:
+    GPIO.cleanup()
+
