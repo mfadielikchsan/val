@@ -47,27 +47,27 @@ try:
                 last_sent_sensor = "MT"
         else:
             # Check other sensors if MT is not running
-            if td_state == GPIO.HIGH and es_state == GPIO.HIGH and c1_state == GPIO.HIGH and c2_state == GPIO.HIGH and last_sent_sensor != "NF":
+            if td_state == GPIO.HIGH and es_state == GPIO.HIGH and c1_state == GPIO.HIGH and c2_state == GPIO.HIGH and last_sent_sensor != "10":
                 if last_sent_sensor == "MT":
-                    send_data("NF")
-                    print("NF")
-                    last_sent_sensor = "NF"
-            elif td_state == GPIO.LOW and last_sent_sensor != "TD":
-                send_data("TD")
-                last_sent_sensor = "TD"
-                print("TD")
-            elif es_state == GPIO.LOW and last_sent_sensor != "ES":
-                send_data("ES")
-                print("ES")
-                last_sent_sensor = "ES"
-            elif c1_state == GPIO.LOW and last_sent_sensor != "C1":
-                send_data("C1")
-                print("C1")
-                last_sent_sensor = "C1"
-            elif c2_state == GPIO.LOW and last_sent_sensor != "C2":
-                send_data("C2")
-                print("C2")
-                last_sent_sensor = "C2"
+                    send_data("10") #NF
+                    print("10")
+                    last_sent_sensor = "10"
+            elif td_state == GPIO.LOW and last_sent_sensor != "11":
+                send_data("11") #TD
+                last_sent_sensor = "11"
+                print("11")
+            elif es_state == GPIO.LOW and last_sent_sensor != "12":
+                send_data("12") #ES
+                print("12")
+                last_sent_sensor = "12"
+            elif c1_state == GPIO.LOW and last_sent_sensor != "13":
+                send_data("13") #C1
+                print("13")
+                last_sent_sensor = "13"
+            elif c2_state == GPIO.LOW and last_sent_sensor != "14":
+                send_data("14")
+                print("14")
+                last_sent_sensor = "14"
 
 
         time.sleep(0.5)  # Debouncing delay
