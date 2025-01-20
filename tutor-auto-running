@@ -1,0 +1,21 @@
+Metode 1: Menggunakan crontab
+Pastikan script Python Anda memiliki izin eksekusi:
+
+bash
+Copy
+chmod +x /path/to/script.py
+Edit crontab untuk menjalankan Thonny dan membuka script Python saat boot:
+
+bash
+Copy
+sudo crontab -e
+Tambahkan baris berikut ke dalam file crontab:
+
+bash
+Copy
+@reboot /usr/bin/thonny /path/to/script.py
+Pastikan untuk mengganti /path/to/script.py dengan path yang sesuai dengan script Python Anda.
+
+Simpan dan keluar dengan menekan CTRL + X, lalu Y, dan tekan Enter.
+
+Dengan cara ini, Thonny akan otomatis terbuka dan menjalankan script Python Anda setiap kali Raspberry Pi di-reboot.
