@@ -3,8 +3,8 @@ import time
 import RPi.GPIO as GPIO
 
 # Konfigurasi GPIO
-TD = 17  # Push button start
-ES = 27  # Emergency stop
+TD = 17  # Tape Defect
+ES = 27  # Element Stitch
 C1 = 22  # Camera 1
 C2 = 5   # Camera 2
 MT = 6   # Motor running sensor
@@ -43,19 +43,21 @@ try:
         c2_state = GPIO.input(C2)
         mt_state = GPIO.input(MT)
 
-        # Tentukan status saat ini
-        if mt_state == GPIO.HIGH:  
-            current_status = "15"  # Motor running
-        elif td_state == GPIO.HIGH:
-            current_status = "11"
-        elif es_state == GPIO.HIGH:
-            current_status = "12"
-        elif c1_state == GPIO.HIGH:
-            current_status = "13"
-        elif c2_state == GPIO.HIGH:
-            current_status = "14"
+        # Priority: Check MT sensor first
+        if mt_state == GPIO.HIGH:  # Motor running
+            current_status = "15"
         else:
-            current_status = "10"  # Standby
+            # Check other sensors if MT is not running
+            if td_state == GPIO.LOW and es_state == GPIO.LOW and c1_state == GPIO.LOW and c2_state == GPIO.LOW:
+                current_status = "10"  # Not Found
+            elif td_state == GPIO.HIGH:
+                current_status = "11" # Tape Defect
+            elif es_state == GPIO.HIGH:
+                current_status = "12" # Element Stitch
+            elif c1_state == GPIO.HIGH:
+                current_status = "13" # Cam 1
+            elif c2_state == GPIO.HIGH:
+                current_status = "14" # Cam 2
 
         # Kirim data hanya jika status berubah atau sudah 10 detik berlalu
         current_time = time.time()
@@ -64,7 +66,7 @@ try:
             last_sent_status = current_status
             last_sent_time = current_time
 
-        time.sleep(0.5)  # Loop setiap 0,5 detik
+        time.sleep(1)  # Loop setiap 1 detik
 except KeyboardInterrupt:
     print("Program terminated by user.")
 finally:
