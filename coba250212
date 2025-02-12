@@ -17,7 +17,7 @@ GPIO.setup(TD, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(ES, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(C1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(C2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(MT, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(MT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 mesin = 'CH0045'
 
