@@ -3,8 +3,8 @@ import time
 import RPi.GPIO as GPIO
 
 # Konfigurasi GPIO
-TD = 17  # Push button start
-ES = 27  # Emergency stop
+TD = 17  # Tape Defect
+ES = 27  # Element Stitch
 C1 = 22  # Camera 1
 C2 = 5   # Camera 2
 MT = 6   # Motor running sensor
