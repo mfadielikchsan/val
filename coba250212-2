@@ -30,8 +30,9 @@ def send_data(param):
     response = requests.get(full_url)
     print(f"Sent: {param}")
 
-# Variable to track the last sent status
-last_sent_status = None
+# Variabel untuk melacak status terakhir
+last_sent_status = "10"  # Standby default
+last_sensor_status = "10"  # Untuk melacak status sensor terakhir
 last_sent_time = time.time()  # Waktu terakhir data dikirim
 
 try:
@@ -43,19 +44,23 @@ try:
         c2_state = GPIO.input(C2)
         mt_state = GPIO.input(MT)
 
-        # Tentukan status saat ini
-        if mt_state == GPIO.HIGH:  
+        # Jika motor berjalan, status menjadi "15" (motor running)
+        if mt_state == GPIO.HIGH:
             current_status = "15"  # Motor running
-        elif td_state == GPIO.HIGH:
-            current_status = "11"
-        elif es_state == GPIO.HIGH:
-            current_status = "12"
-        elif c1_state == GPIO.HIGH:
-            current_status = "13"
-        elif c2_state == GPIO.HIGH:
-            current_status = "14"
+            last_sensor_status = "10"  # Reset sensor jika motor running
         else:
-            current_status = "10"  # Standby
+            # Jika motor tidak berjalan, cek sensor lain
+            if td_state == GPIO.HIGH:
+                last_sensor_status = "11"
+            elif es_state == GPIO.HIGH:
+                last_sensor_status = "12"
+            elif c1_state == GPIO.HIGH:
+                last_sensor_status = "13"
+            elif c2_state == GPIO.HIGH:
+                last_sensor_status = "14"
+
+            # Status saat ini adalah status sensor terakhir yang aktif
+            current_status = last_sensor_status
 
         # Kirim data hanya jika status berubah atau sudah 10 detik berlalu
         current_time = time.time()
@@ -64,7 +69,8 @@ try:
             last_sent_status = current_status
             last_sent_time = current_time
 
-        time.sleep(1)  # Loop setiap 1 detik
+        # Delay untuk menghindari pembacaan terlalu cepat
+        time.sleep(0.02)
 except KeyboardInterrupt:
     print("Program terminated by user.")
 finally:
