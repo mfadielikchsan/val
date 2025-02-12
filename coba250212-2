@@ -1,0 +1,71 @@
+import requests
+import time
+import RPi.GPIO as GPIO
+
+# Konfigurasi GPIO
+TD = 17  # Tape Defect
+ES = 27  # Element Stitch
+C1 = 22  # Camera 1
+C2 = 5   # Camera 2
+MT = 6   # Motor running sensor
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# Setup GPIO pins as input with pull-up resistors
+GPIO.setup(TD, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(ES, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(C1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(C2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(MT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+mesin = 'CH0045'
+
+# URL target
+url = "http://10.246.142.20/pdgeneral/kirim_data/sensor_inspection/"
+
+# Function to send data to the database
+def send_data(param):
+    full_url = f"{url}{mesin}-{param}"
+    response = requests.get(full_url)
+    print(f"Sent: {param}")
+
+# Variable to track the last sent status
+last_sent_status = None
+last_sent_time = time.time()  # Waktu terakhir data dikirim
+
+try:
+    while True:
+        # Read the state of sensors
+        td_state = GPIO.input(TD)
+        es_state = GPIO.input(ES)
+        c1_state = GPIO.input(C1)
+        c2_state = GPIO.input(C2)
+        mt_state = GPIO.input(MT)
+
+        # Tentukan status saat ini
+        if mt_state == GPIO.HIGH:  
+            current_status = "15"  # Motor running
+        elif td_state == GPIO.HIGH:
+            current_status = "11"
+        elif es_state == GPIO.HIGH:
+            current_status = "12"
+        elif c1_state == GPIO.HIGH:
+            current_status = "13"
+        elif c2_state == GPIO.HIGH:
+            current_status = "14"
+        else:
+            current_status = "10"  # Standby
+
+        # Kirim data hanya jika status berubah atau sudah 10 detik berlalu
+        current_time = time.time()
+        if current_status != last_sent_status or (current_time - last_sent_time >= 10):
+            send_data(current_status)
+            last_sent_status = current_status
+            last_sent_time = current_time
+
+        time.sleep(1)  # Loop setiap 1 detik
+except KeyboardInterrupt:
+    print("Program terminated by user.")
+finally:
+    GPIO.cleanup()
