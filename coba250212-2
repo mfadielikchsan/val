@@ -37,19 +37,18 @@ last_sent_time = time.time()  # Waktu terakhir data dikirim
 
 try:
     while True:
-        # Read the state of sensors
+        # Baca status dari semua sensor
         td_state = GPIO.input(TD)
         es_state = GPIO.input(ES)
         c1_state = GPIO.input(C1)
         c2_state = GPIO.input(C2)
         mt_state = GPIO.input(MT)
 
-        # Jika motor berjalan, status menjadi "15" (motor running)
+        # Jika motor berjalan (MT HIGH)
         if mt_state == GPIO.HIGH:
             current_status = "15"  # Motor running
-            last_sensor_status = "10"  # Reset sensor jika motor running
         else:
-            # Jika motor tidak berjalan, cek sensor lain
+            # Jika motor mati (MT LOW), cek sensor
             if td_state == GPIO.HIGH:
                 last_sensor_status = "11"
             elif es_state == GPIO.HIGH:
@@ -58,18 +57,21 @@ try:
                 last_sensor_status = "13"
             elif c2_state == GPIO.HIGH:
                 last_sensor_status = "14"
+            else:
+                # Jika tidak ada sensor aktif, gunakan status standby
+                last_sensor_status = "10"
 
-            # Status saat ini adalah status sensor terakhir yang aktif
+            # Gunakan status sensor terakhir sebagai status saat ini
             current_status = last_sensor_status
 
-        # Kirim data hanya jika status berubah atau sudah 10 detik berlalu
+        # Kirim data setiap 1 detik atau jika status berubah
         current_time = time.time()
-        if current_status != last_sent_status or (current_time - last_sent_time >= 10):
+        if current_status != last_sent_status or (current_time - last_sent_time >= 1):
             send_data(current_status)
             last_sent_status = current_status
             last_sent_time = current_time
 
-        # Delay untuk menghindari pembacaan terlalu cepat
+        # Delay pembacaan untuk menangkap pulsa sensor (0.02 detik)
         time.sleep(0.02)
 except KeyboardInterrupt:
     print("Program terminated by user.")
