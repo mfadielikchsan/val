@@ -1,0 +1,101 @@
+
+import requests
+import time
+import RPi.GPIO as GPIO
+
+# Konfigurasi GPIO
+TD = 17  # Tape Defect
+ES = 27  # Element Stitch
+C1 = 22  # Camera 1
+C2 = 5   # Camera 2
+MT = 6   # Motor running sensor
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# Setup GPIO pins as input with pull-up resistors
+GPIO.setup(TD, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(ES, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(C1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(C2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(MT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+mesin = 'CH0045'
+
+# URL target
+url = "http://10.246.142.20/pdgeneral/kirim_data/sensor_inspection/"
+
+# Function to send data to the database
+def send_data(param):
+    full_url = f"{url}{mesin}-{param}"
+    try:
+        response = requests.get(full_url)
+        print(f"Sent: {param}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send data: {e}")
+
+# Variable to track the last sent status
+last_sent_status = None
+last_sent_sensor = None  # Untuk memantau sensor terakhir yang mengirimkan data
+last_sent_time = time.time()
+
+# Callback function for GPIO event detection
+def sensor_callback(channel):
+    global last_sent_status, last_sent_sensor, last_sent_time
+
+    current_status = None
+
+    # Read the state of sensors
+    td_state = GPIO.input(TD)
+    es_state = GPIO.input(ES)
+    c1_state = GPIO.input(C1)
+    c2_state = GPIO.input(C2)
+    mt_state = GPIO.input(MT)
+
+    # Determine current status based on your logic
+    if mt_state == GPIO.HIGH:  # Motor running
+        current_status = "15"
+        last_sent_sensor = "MT"
+    else:
+        if td_state == GPIO.HIGH:
+            current_status = "11"
+            last_sent_sensor = "TD"
+        elif es_state == GPIO.HIGH:
+            current_status = "12"
+            last_sent_sensor = "ES"
+        elif c1_state == GPIO.HIGH:
+            current_status = "13"
+            last_sent_sensor = "C1"
+        elif c2_state == GPIO.HIGH:
+            current_status = "14"
+            last_sent_sensor = "C2"
+        else:
+            # If no sensors are active and last state was motor running, send status "10"
+            if last_sent_sensor == "MT":
+                current_status = "10"
+                last_sent_sensor = "NF"  # "No Fault" to indicate all sensors inactive
+
+    # Send data if status changes or every 10 seconds
+    current_time = time.time()
+    if current_status is not None and (current_status != last_sent_status or (current_time - last_sent_time >= 10)):
+        send_data(current_status)
+        last_sent_status = current_status
+        last_sent_time = current_time
+
+# Add event detection for each pin
+GPIO.add_event_detect(MT, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
+GPIO.add_event_detect(TD, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
+GPIO.add_event_detect(ES, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
+GPIO.add_event_detect(C1, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
+GPIO.add_event_detect(C2, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
+
+print("Monitoring sensors... Press Ctrl+C to exit.")
+
+try:
+    while True:
+        # Keep the script running
+        time.sleep(1)
+except KeyboardInterrupt:
+    print("Program terminated by user.")
+finally:
+    GPIO.cleanup()
