@@ -54,7 +54,7 @@ try:
         else:
             # Jika motor mati dan semua sensor LOW, kirim status 10
             if td_state == GPIO.LOW and es_state == GPIO.LOW and c1_state == GPIO.LOW and c2_state == GPIO.LOW:
-                if last_sent_sensor == "MT":  # Kirim status 10 hanya jika sebelumnya dari status MT
+                if last_sent_sensor == "15":  # Kirim status 10 hanya jika sebelumnya dari status MT
                     current_status = "10" # NF
                     last_sent_sensor = "10"  # Menyimpan status 10 sebagai sensor terakhir
                 else:
