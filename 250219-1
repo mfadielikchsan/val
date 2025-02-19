@@ -83,11 +83,11 @@ def sensor_callback(channel):
         last_sent_time = current_time
 
 # Add event detection for each pin
-GPIO.add_event_detect(MT, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
-GPIO.add_event_detect(TD, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
-GPIO.add_event_detect(ES, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
-GPIO.add_event_detect(C1, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
-GPIO.add_event_detect(C2, GPIO.BOTH, callback=sensor_callback, bouncetime=100)
+GPIO.add_event_detect(MT, GPIO.BOTH, callback=sensor_callback, bouncetime=50)
+GPIO.add_event_detect(TD, GPIO.BOTH, callback=sensor_callback, bouncetime=50)
+GPIO.add_event_detect(ES, GPIO.BOTH, callback=sensor_callback, bouncetime=50)
+GPIO.add_event_detect(C1, GPIO.BOTH, callback=sensor_callback, bouncetime=50)
+GPIO.add_event_detect(C2, GPIO.BOTH, callback=sensor_callback, bouncetime=50)
 
 print("Monitoring sensors... Press Ctrl+C to exit.")
 
