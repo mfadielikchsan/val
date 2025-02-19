@@ -51,18 +51,30 @@ try:
         if td_state == GPIO.HIGH:
             current_status = "11" # TD  
             last_sent_sensor = "11"
+        else:
+            current_status = "00"  
+            last_sent_sensor = "00"
 
         # if es_state == GPIO.HIGH:
         #     current_status = "12" # ES
         #     last_sent_sensor = "12"
+        # else:
+        #     current_status = "00"  
+        #     last_sent_sensor = "00"
 
         # if c1_state == GPIO.HIGH:
         #     current_status = "13" # C1
         #     last_sent_sensor = "13"
+        # else:
+        #     current_status = "00"  
+        #     last_sent_sensor = "00"
 
         # if c2_state == GPIO.HIGH:
         #     current_status = "14" # C2
         #     last_sent_sensor = "14"
+        # else:
+        #     current_status = "00"  
+        #     last_sent_sensor = "00"
 
         send_data(current_status)
 
