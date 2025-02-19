@@ -57,18 +57,18 @@ def sensor_callback(channel):
         current_status = "15"
         last_sent_sensor = "MT"
     else:
-        if td_state == GPIO.HIGH:
-            current_status = "11"
-            last_sent_sensor = "TD"
-        elif es_state == GPIO.HIGH:
-            current_status = "12"
-            last_sent_sensor = "ES"
-        elif c1_state == GPIO.HIGH:
+        if c1_state == GPIO.HIGH:
             current_status = "13"
             last_sent_sensor = "C1"
         elif c2_state == GPIO.HIGH:
             current_status = "14"
             last_sent_sensor = "C2"
+        elif td_state == GPIO.HIGH:
+            current_status = "11"
+            last_sent_sensor = "TD"
+        elif es_state == GPIO.HIGH:
+            current_status = "12"
+            last_sent_sensor = "ES"
         else:
             # If no sensors are active and last state was motor running, send status "10"
             if last_sent_sensor == "MT":
