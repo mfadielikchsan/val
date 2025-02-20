@@ -30,14 +30,12 @@ def send_data(param):
     full_url = f"{url}{mesin}-{param}"
     try:
         response = requests.get(full_url)
-        print(f"Sent: {param}")
+        print(f"Sent: {param} | Response: {response.status_code}")
     except requests.exceptions.RequestException as e:
         print(f"Failed to send data: {e}")
 
-# Variable to track the last sent status and time
-last_sent_status = None
-last_sent_time = time.time()
-last_sent_sensor = None  # Untuk memantau sensor terakhir yang mengirimkan data
+# Variable to store the last state of each sensor
+last_state = None  # Untuk melacak status terakhir yang dikirimkan
 
 try:
     while True:
@@ -48,35 +46,16 @@ try:
         c2_state = GPIO.input(C2)
         mt_state = GPIO.input(MT)
 
+        # Determine the current status based on sensor states
         if td_state == GPIO.HIGH:
-            current_status = "11" # TD  
-            last_sent_sensor = "11"
+            current_status = "11"  # TD ON
         else:
-            current_status = "00"  
-            last_sent_sensor = "00"
+            current_status = "0"  # All sensors OFF
 
-        # if es_state == GPIO.HIGH:
-        #     current_status = "12" # ES
-        #     last_sent_sensor = "12"
-        # else:
-        #     current_status = "00"  
-        #     last_sent_sensor = "00"
-
-        # if c1_state == GPIO.HIGH:
-        #     current_status = "13" # C1
-        #     last_sent_sensor = "13"
-        # else:
-        #     current_status = "00"  
-        #     last_sent_sensor = "00"
-
-        # if c2_state == GPIO.HIGH:
-        #     current_status = "14" # C2
-        #     last_sent_sensor = "14"
-        # else:
-        #     current_status = "00"  
-        #     last_sent_sensor = "00"
-
-        send_data(current_status)
+        # Check if the current status is different from the last sent status
+        if current_status != last_state:
+            send_data(current_status)
+            last_state = current_status  # Update the last state to the current one
 
         time.sleep(0.02)  # Delay pembacaan sensor (20 ms)
 except KeyboardInterrupt:
