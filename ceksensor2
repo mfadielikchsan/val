@@ -37,10 +37,8 @@ try:
 
         if sensor_state == GPIO.HIGH:
             current_status = "100" # Ada Data  
-            last_sent_sensor = "100"
         else:
             current_status = "0" # Tidak Ada Data 
-            last_sent_sensor = "0"
 
         # Kirim data setiap 10 detik atau jika status berubah
         current_time = time.time()
