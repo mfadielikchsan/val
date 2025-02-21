@@ -50,7 +50,6 @@ try:
         # Determine current status
         if mt_state == GPIO.HIGH:  # Motor running
             current_status = "15"
-            last_sent_sensor = "15"
         else:
             # Jika motor mati dan semua sensor LOW, kirim status 10
             if td_state == GPIO.LOW and es_state == GPIO.LOW and c1_state == GPIO.LOW and c2_state == GPIO.LOW:
