@@ -1,0 +1,83 @@
+
+import requests
+import time
+import RPi.GPIO as GPIO
+
+# Konfigurasi GPIO
+TD = 17  # Tape Defect
+ES = 27  # Element Stitch
+C1 = 22  # Camera 1
+C2 = 5   # Camera 2
+MT = 6   # Motor running sensor
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# Setup GPIO pins as input with pull-up resistors
+GPIO.setup(TD, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(ES, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(C1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(C2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(MT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+mesin = 'CH0045'
+
+# URL target
+url = "http://10.246.142.20/pdgeneral/kirim_data/sensor_inspection/"
+
+# Function to send data to the database
+def send_data(param):
+    full_url = f"{url}{mesin}-{param}"
+    try:
+        response = requests.get(full_url)
+        print(f"Sent: {param}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send data: {e}")
+
+# Variable to track the last sent status and time
+last_sent_status = None
+last_sent_time = time.time()
+
+try:
+    while True:
+        # Read the state of sensors
+        td_state = GPIO.input(TD)
+        es_state = GPIO.input(ES)
+        c1_state = GPIO.input(C1)
+        c2_state = GPIO.input(C2)
+        mt_state = GPIO.input(MT)
+
+        # Determine current status
+        if mt_state == GPIO.HIGH:  # Motor running
+            current_status = "15"
+            last_sent_sensor = "15"
+        else:
+            # Jika motor mati dan semua sensor LOW, kirim status 10
+            if td_state == GPIO.LOW and es_state == GPIO.LOW and c1_state == GPIO.LOW and c2_state == GPIO.LOW:
+                if last_sent_status == "15":  # Kirim status 10 hanya jika sebelumnya dari status MT
+                    current_status = "10" # NF
+                else:
+                    continue  # Skip pengiriman jika status 10 sudah dikirim sebelumnya
+            elif td_state == GPIO.HIGH:
+                current_status = "11" # TD  
+            elif es_state == GPIO.HIGH:
+                current_status = "12" # ES
+            elif c1_state == GPIO.HIGH:
+                current_status = "13" # C1
+            elif c2_state == GPIO.HIGH:
+                current_status = "14" # C2
+            else:
+                continue  # Tidak ada perubahan status
+
+        # Kirim data setiap 10 detik atau jika status berubah
+        current_time = time.time()
+        if current_status != last_sent_status or (current_time - last_sent_time >= 10):
+            send_data(current_status)
+            last_sent_status = current_status
+            last_sent_time = current_time
+
+        time.sleep(0.02)  # Delay pembacaan sensor (20 ms)
+except KeyboardInterrupt:
+    print("Program terminated by user.")
+finally:
+    GPIO.cleanup()
