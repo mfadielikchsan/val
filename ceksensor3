@@ -24,9 +24,11 @@ def send_data(status):
 
     if status != last_sent_status or (time.time() - last_sent_time >= 10):
         full_url = f"{URL_BASE}{MESIN_ID}-{status}"
+        print(f"[DEBUG] Sending data: {full_url}")  # Debug print sebelum request
+
         try:
             response = requests.get(full_url, timeout=5)  # Timeout 5 detik
-            print(f"[INFO] Sent: {status} | Response: {response.status_code}")
+            print(f"[INFO] Sent: {status} | Response Code: {response.status_code}")
         except requests.exceptions.RequestException as e:
             print(f"[ERROR] Failed to send data: {e}")
 
@@ -36,17 +38,29 @@ def send_data(status):
 # Callback function untuk mendeteksi perubahan sensor
 def sensor_callback(channel):
     sensor_state = GPIO.input(SENSOR_PIN)
-    status = "100" if sensor_state == GPIO.LOW else "0"  # LOW = Aktif
+    
+    # Cek apakah nilai sensor terbaca dengan benar
+    print(f"[DEBUG] Sensor state changed: {sensor_state}")
+
+    # Jika sensor LOW, berarti aktif (tergantung jenis sensor)
+    status = "100" if sensor_state == GPIO.LOW else "0"
     send_data(status)
 
 # Event detection untuk membaca perubahan sensor dengan debounce
-GPIO.add_event_detect(SENSOR_PIN, GPIO.BOTH, callback=sensor_callback, bouncetime=200)
+GPIO.add_event_detect(SENSOR_PIN, GPIO.BOTH, callback=sensor_callback, bouncetime=300)
 
 print("[INFO] Program started. Press Ctrl+C to stop.")
 
 try:
     while True:
-        time.sleep(1)  # Program utama tetap berjalan tetapi tidak membebani CPU
+        # Baca sensor setiap 1 detik sebagai backup jika event tidak bekerja
+        sensor_state = GPIO.input(SENSOR_PIN)
+        status = "100" if sensor_state == GPIO.LOW else "0"
+
+        print(f"[DEBUG] Sensor current state: {sensor_state}, status to send: {status}")
+
+        send_data(status)
+        time.sleep(1)  # Loop setiap 1 detik
 except KeyboardInterrupt:
     print("\n[INFO] Program terminated by user.")
 finally:
