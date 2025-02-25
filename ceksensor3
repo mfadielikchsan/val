@@ -1,0 +1,53 @@
+import requests
+import time
+import RPi.GPIO as GPIO
+
+# Konfigurasi GPIO
+SENSOR_PIN = 27  # Pin GPIO untuk sensor
+MESIN_ID = "TST45"
+URL_BASE = "http://10.246.142.20/pdgeneral/kirim_data/sensor_inspection/"
+
+# Setup GPIO mode
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+
+# Setup GPIO sebagai input dengan pull-up resistor (hindari sinyal floating)
+GPIO.setup(SENSOR_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# Variabel untuk tracking status terakhir
+last_sent_status = None
+last_sent_time = time.time()
+
+# Function untuk mengirim data ke server
+def send_data(status):
+    global last_sent_status, last_sent_time
+
+    if status != last_sent_status or (time.time() - last_sent_time >= 10):
+        full_url = f"{URL_BASE}{MESIN_ID}-{status}"
+        try:
+            response = requests.get(full_url, timeout=5)  # Timeout 5 detik
+            print(f"[INFO] Sent: {status} | Response: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"[ERROR] Failed to send data: {e}")
+
+        last_sent_status = status
+        last_sent_time = time.time()
+
+# Callback function untuk mendeteksi perubahan sensor
+def sensor_callback(channel):
+    sensor_state = GPIO.input(SENSOR_PIN)
+    status = "100" if sensor_state == GPIO.LOW else "0"  # LOW = Aktif
+    send_data(status)
+
+# Event detection untuk membaca perubahan sensor dengan debounce
+GPIO.add_event_detect(SENSOR_PIN, GPIO.BOTH, callback=sensor_callback, bouncetime=200)
+
+print("[INFO] Program started. Press Ctrl+C to stop.")
+
+try:
+    while True:
+        time.sleep(1)  # Program utama tetap berjalan tetapi tidak membebani CPU
+except KeyboardInterrupt:
+    print("\n[INFO] Program terminated by user.")
+finally:
+    GPIO.cleanup()
