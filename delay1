@@ -64,45 +64,32 @@ try:
 
         # Tentukan status saat ini
         if mt_state == GPIO.HIGH:  # Motor running
-            current_status = "15"
-            last_sent_sensor = "15"
-        else:
-            # Jika motor mati, cek apakah dalam 7.5 detik terakhir ES, C1, atau C2 aktif
-            if td_state == GPIO.LOW and es_state == GPIO.LOW and c1_state == GPIO.LOW and c2_state == GPIO.LOW:
-                if last_sent_sensor == "15":
-                    # Cek apakah dalam 7.5 detik terakhir ES, C1, atau C2 aktif
-                    if current_time - last_es_time <= delay_threshold:
-                        current_status = "12"  # Gunakan status terakhir ES
-                        last_sent_sensor = "12"
-                    elif current_time - last_c1_time <= delay_threshold:
-                        current_status = "13"  # Gunakan status terakhir C1
-                        last_sent_sensor = "13"
-                    elif current_time - last_c2_time <= delay_threshold:
-                        current_status = "14"  # Gunakan status terakhir C2
-                        last_sent_sensor = "14"
-                    else:
-                        # Jika mesin tetap mati setelah 7.5 detik, tetap gunakan status terakhir sensor
-                        if last_sent_sensor in ["12", "13", "14"]:
-                            current_status = last_sent_sensor  # Tetap gunakan status sebelumnya
-                        else:
-                            current_status = "10"  # Not Found hanya jika sebelumnya bukan dari sensor
-                            last_sent_sensor = "10"
-                else:
-                    continue  # Skip pengiriman jika status 10 sudah dikirim sebelumnya
-            elif td_state == GPIO.HIGH:
-                current_status = "11"  # TD  
-                last_sent_sensor = "11"
-            elif es_state == GPIO.HIGH:
-                current_status = "12"  # ES
+            # Cek apakah dalam 7.5 detik terakhir ES, C1, atau C2 aktif
+            if current_time - last_es_time <= delay_threshold:
+                current_status = "12"  # Gunakan status terakhir ES
                 last_sent_sensor = "12"
-            elif c1_state == GPIO.HIGH:
-                current_status = "13"  # C1
+            elif current_time - last_c1_time <= delay_threshold:
+                current_status = "13"  # Gunakan status terakhir C1
                 last_sent_sensor = "13"
-            elif c2_state == GPIO.HIGH:
-                current_status = "14"  # C2
+            elif current_time - last_c2_time <= delay_threshold:
+                current_status = "14"  # Gunakan status terakhir C2
                 last_sent_sensor = "14"
             else:
-                continue  # Tidak ada perubahan status
+                current_status = "15"  # Motor running
+                last_sent_sensor = "15"
+        else:
+            # Jika motor mati
+            if td_state == GPIO.HIGH:
+                current_status = "11"  # TD  
+                last_sent_sensor = "11"
+            else:
+                if last_sent_sensor == "15":
+                    # Jika mesin tetap mati setelah 7.5 detik, tetap gunakan status terakhir sensor
+                    if last_sent_sensor in ["12", "13", "14"]:
+                        current_status = last_sent_sensor  # Tetap gunakan status sebelumnya
+                    else:
+                        current_status = "10"  # Not Found hanya jika sebelumnya bukan dari sensor
+                        last_sent_sensor = "10"
 
         # Kirim data setiap 10 detik atau jika status berubah
         if current_status != last_sent_status or (current_time - last_sent_time >= 10):
