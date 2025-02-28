@@ -38,10 +38,13 @@ last_sent_status = None
 last_sent_time = time.time()
 last_sent_sensor = None  # Untuk memantau sensor terakhir yang mengirimkan data
 
-# Variabel untuk sensor pertama yang terdeteksi
-first_triggered_sensor = None
-first_triggered_time = 0
-delay_threshold = 7.5  # Ubah menjadi 7.5 detik
+# Variable untuk menyimpan waktu terakhir sensor ES, C1, C2 aktif
+last_es_time = 0
+last_c1_time = 0
+last_c2_time = 0
+first_triggered_sensor = None  # Menyimpan sensor pertama yang aktif dalam 7.5 detik
+first_trigger_time = None  # Menyimpan waktu pertama kali ada sensor aktif dalam 7.5 detik
+delay_threshold = 7.5  # Waktu maksimal untuk menentukan sensor pertama
 
 try:
     while True:
@@ -53,40 +56,45 @@ try:
         mt_state = GPIO.input(MT)
         current_time = time.time()
 
-        # Jika motor running, reset first_triggered_sensor
-        if mt_state == GPIO.HIGH:
+        # Update waktu terakhir sensor ES, C1, C2 aktif dan simpan sensor pertama yang aktif
+        if es_state == GPIO.HIGH and first_triggered_sensor is None:
+            first_triggered_sensor = "12"
+            first_trigger_time = current_time
+
+        if c1_state == GPIO.HIGH and first_triggered_sensor is None:
+            first_triggered_sensor = "13"
+            first_trigger_time = current_time
+
+        if c2_state == GPIO.HIGH and first_triggered_sensor is None:
+            first_triggered_sensor = "14"
+            first_trigger_time = current_time
+
+        # Reset first_triggered_sensor jika lebih dari 7.5 detik sejak sensor pertama aktif
+        if first_trigger_time and (current_time - first_trigger_time > delay_threshold):
             first_triggered_sensor = None
-            first_triggered_time = 0
-            last_sent_sensor = "15"
-            current_status = "15"
-        
-        else:
-            # Jika belum ada sensor yang terdeteksi, simpan yang pertama
-            if first_triggered_sensor is None:
-                if es_state == GPIO.HIGH:
-                    first_triggered_sensor = "12"  # ES
-                    first_triggered_time = current_time
-                elif c1_state == GPIO.HIGH:
-                    first_triggered_sensor = "13"  # C1
-                    first_triggered_time = current_time
-                elif c2_state == GPIO.HIGH:
-                    first_triggered_sensor = "14"  # C2
-                    first_triggered_time = current_time
-            
-            # Jika mesin tetap mati setelah 7.5 detik, gunakan sensor pertama yang terdeteksi
-            if first_triggered_sensor and (current_time - first_triggered_time >= delay_threshold):
+            first_trigger_time = None
+
+        # Tentukan status saat ini
+        if mt_state == GPIO.HIGH:  # Motor running
+            if first_triggered_sensor:
                 current_status = first_triggered_sensor
                 last_sent_sensor = first_triggered_sensor
-            elif td_state == GPIO.HIGH:
+            else:
+                current_status = "15"  # Motor running
+                last_sent_sensor = "15"
+        else:
+            # Jika motor mati
+            if td_state == GPIO.HIGH:
                 current_status = "11"  # TD  
                 last_sent_sensor = "11"
             else:
-                # Jika tidak ada sensor yang aktif dan sebelumnya dari MT, kirim Not Found
                 if last_sent_sensor == "15":
-                    current_status = "10"  # Not Found
-                    last_sent_sensor = "10"
-                else:
-                    continue  # Skip pengiriman jika tidak ada perubahan
+                    # Jika mesin tetap mati setelah 7.5 detik, tetap gunakan status terakhir sensor
+                    if last_sent_sensor in ["12", "13", "14"]:
+                        current_status = last_sent_sensor  # Tetap gunakan status sebelumnya
+                    else:
+                        current_status = "10"  # Not Found hanya jika sebelumnya bukan dari sensor
+                        last_sent_sensor = "10"
 
         # Kirim data setiap 10 detik atau jika status berubah
         if current_status != last_sent_status or (current_time - last_sent_time >= 10):
