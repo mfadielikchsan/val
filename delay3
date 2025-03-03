@@ -36,15 +36,17 @@ def send_data(param):
 # Variable untuk tracking status terakhir & waktu terakhir pengiriman
 last_sent_status = None
 last_sent_time = time.time()
-last_sent_sensor = None  # Untuk memantau sensor terakhir yang mengirimkan data
+last_sent_sensor = None  
 
-# Variable untuk menyimpan waktu terakhir sensor TD, ES, C1, C2 aktif
-last_td_time = 0
+# Variable untuk menyimpan waktu terakhir sensor ES, C1, C2, TD, dan MT aktif
 last_es_time = 0
 last_c1_time = 0
 last_c2_time = 0
-first_triggered_sensor = None  # Menyimpan sensor pertama yang aktif dalam 7.5 detik
-first_trigger_time = None  # Menyimpan waktu pertama kali ada sensor aktif dalam 7.5 detik
+last_td_time = 0
+last_mt_time = 0
+prev_status = None  # Menyimpan status terakhir sebelum berubah
+first_triggered_sensor = None  
+first_trigger_time = None  
 delay_threshold = 7.5  # Waktu maksimal untuk menentukan sensor pertama
 
 try:
@@ -57,21 +59,27 @@ try:
         mt_state = GPIO.input(MT)
         current_time = time.time()
 
-        # Update waktu terakhir sensor TD, ES, C1, C2 aktif dan simpan sensor pertama yang aktif
-        if td_state == GPIO.HIGH and first_triggered_sensor is None:
-            first_triggered_sensor = "11"  # TD
-            first_trigger_time = current_time
+        # Update waktu terakhir sensor aktif
+        if td_state == GPIO.HIGH:
+            last_td_time = current_time
+        
+        if mt_state == GPIO.HIGH:
+            last_mt_time = current_time
 
+        if es_state == GPIO.HIGH:
+            last_es_time = current_time
+
+        # Update waktu terakhir sensor ES, C1, C2 aktif dan simpan sensor pertama yang aktif
         if es_state == GPIO.HIGH and first_triggered_sensor is None:
-            first_triggered_sensor = "12"  # ES
+            first_triggered_sensor = "12"
             first_trigger_time = current_time
 
         if c1_state == GPIO.HIGH and first_triggered_sensor is None:
-            first_triggered_sensor = "13"  # C1
+            first_triggered_sensor = "13"
             first_trigger_time = current_time
 
         if c2_state == GPIO.HIGH and first_triggered_sensor is None:
-            first_triggered_sensor = "14"  # C2
+            first_triggered_sensor = "14"
             first_trigger_time = current_time
 
         # Reset first_triggered_sensor jika lebih dari 7.5 detik sejak sensor pertama aktif
@@ -81,21 +89,33 @@ try:
 
         # Tentukan status saat ini
         if mt_state == GPIO.HIGH:  # Motor running
-            if first_triggered_sensor:
+            if es_state == GPIO.HIGH:
+                # Cek apakah sebelumnya TD lalu MT dalam ≤ 3 detik terakhir
+                if prev_status == "11" and (current_time - last_mt_time <= 3):
+                    current_status = "15"  # Tetap anggap Motor Running
+                    last_sent_sensor = "15"
+                else:
+                    current_status = "12"  # ES
+                    last_sent_sensor = "12"
+
+            elif first_triggered_sensor:
                 current_status = first_triggered_sensor
                 last_sent_sensor = first_triggered_sensor
+
             else:
                 current_status = "15"  # Motor running
                 last_sent_sensor = "15"
+
         else:
             # Jika motor mati
-            if first_triggered_sensor:
-                current_status = first_triggered_sensor
-                last_sent_sensor = first_triggered_sensor
+            if td_state == GPIO.HIGH:
+                current_status = "11"  # TD  
+                last_sent_sensor = "11"
+
             else:
                 if last_sent_sensor == "15":
                     # Jika mesin tetap mati setelah 7.5 detik, tetap gunakan status terakhir sensor
-                    if last_sent_sensor in ["11", "12", "13", "14"]:
+                    if last_sent_sensor in ["12", "13", "14"]:
                         current_status = last_sent_sensor  # Tetap gunakan status sebelumnya
                     else:
                         current_status = "10"  # Not Found hanya jika sebelumnya bukan dari sensor
@@ -106,6 +126,9 @@ try:
             send_data(current_status)
             last_sent_status = current_status
             last_sent_time = current_time
+
+        # Simpan status terakhir
+        prev_status = current_status  
 
         time.sleep(0.02)  # Delay pembacaan sensor (20 ms)
 
