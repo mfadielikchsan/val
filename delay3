@@ -36,17 +36,14 @@ def send_data(param):
 # Variable untuk tracking status terakhir & waktu terakhir pengiriman
 last_sent_status = None
 last_sent_time = time.time()
-last_sent_sensor = None  
+last_sent_sensor = None  # Untuk memantau sensor terakhir yang mengirimkan data
 
-# Variable untuk menyimpan waktu terakhir sensor ES, C1, C2, TD, dan MT aktif
+# Variable untuk menyimpan waktu terakhir sensor ES, C1, C2 aktif
 last_es_time = 0
 last_c1_time = 0
 last_c2_time = 0
-last_td_time = 0
-last_mt_time = 0
-prev_status = None  # Menyimpan status terakhir sebelum berubah
-first_triggered_sensor = None  
-first_trigger_time = None  
+first_triggered_sensor = None  # Menyimpan sensor pertama yang aktif dalam 7.5 detik
+first_trigger_time = None  # Menyimpan waktu pertama kali ada sensor aktif dalam 7.5 detik
 delay_threshold = 7.5  # Waktu maksimal untuk menentukan sensor pertama
 
 try:
@@ -59,19 +56,16 @@ try:
         mt_state = GPIO.input(MT)
         current_time = time.time()
 
-        # Update waktu terakhir sensor aktif
-        if td_state == GPIO.HIGH:
-            last_td_time = current_time
-        
-        if mt_state == GPIO.HIGH:
-            last_mt_time = current_time
-
-        if es_state == GPIO.HIGH:
-            last_es_time = current_time
-
         # Update waktu terakhir sensor ES, C1, C2 aktif dan simpan sensor pertama yang aktif
         if es_state == GPIO.HIGH and first_triggered_sensor is None:
-            first_triggered_sensor = "12"
+            # Cek apakah sebelumnya last_sent_sensor adalah "15" dan apakah sebelum "15" adalah "11" (TD)
+            if last_sent_sensor == "15" and (current_time - last_sent_time <= 3):
+                if last_sent_status == "11":  # Sebelum "15" apakah "11" (TD)
+                    first_triggered_sensor = "15"  # Tetap "15" (MT)
+                else:
+                    first_triggered_sensor = "12"  # ES
+            else:
+                first_triggered_sensor = "12"  # ES
             first_trigger_time = current_time
 
         if c1_state == GPIO.HIGH and first_triggered_sensor is None:
@@ -89,29 +83,17 @@ try:
 
         # Tentukan status saat ini
         if mt_state == GPIO.HIGH:  # Motor running
-            if es_state == GPIO.HIGH:
-                # Cek apakah sebelumnya TD lalu MT dalam ≤ 3 detik terakhir
-                if prev_status == "11" and (current_time - last_mt_time <= 3):
-                    current_status = "15"  # Tetap anggap Motor Running
-                    last_sent_sensor = "15"
-                else:
-                    current_status = "12"  # ES
-                    last_sent_sensor = "12"
-
-            elif first_triggered_sensor:
+            if first_triggered_sensor:
                 current_status = first_triggered_sensor
                 last_sent_sensor = first_triggered_sensor
-
             else:
                 current_status = "15"  # Motor running
                 last_sent_sensor = "15"
-
         else:
             # Jika motor mati
             if td_state == GPIO.HIGH:
                 current_status = "11"  # TD  
                 last_sent_sensor = "11"
-
             else:
                 if last_sent_sensor == "15":
                     # Jika mesin tetap mati setelah 7.5 detik, tetap gunakan status terakhir sensor
@@ -126,9 +108,6 @@ try:
             send_data(current_status)
             last_sent_status = current_status
             last_sent_time = current_time
-
-        # Simpan status terakhir
-        prev_status = current_status  
 
         time.sleep(0.02)  # Delay pembacaan sensor (20 ms)
 
