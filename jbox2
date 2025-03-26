@@ -3,11 +3,11 @@ import time
 import RPi.GPIO as GPIO
 
 # Konfigurasi GPIO
-TD = 17  # Tape Defect
+TD = 26  # Tape Defect
 ES = 27  # Element Stitch
-C1 = 22  # Camera 1
+C1 = 16  # Camera 1
 C2 = 5   # Camera 2
-JB = 25  # J-Box
+JB = 24  # J-Box
 MT = 6   # Motor running sensor
 
 GPIO.setmode(GPIO.BCM)
