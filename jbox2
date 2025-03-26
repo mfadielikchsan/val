@@ -18,7 +18,7 @@ GPIO.setup(TD, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(ES, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(C1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(C2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(JB, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(JB, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(MT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 mesin = 'CH0045'
@@ -60,7 +60,7 @@ try:
         current_time = time.time()
 
         # Deteksi apakah JB terpicu sebelum motor mati
-        if jb_state == GPIO.HIGH and mt_state == GPIO.HIGH:
+        if jb_state == GPIO.LOW:
             jb_triggered_before_motor_stop = True  # Tandai bahwa JB aktif sebelum motor mati
 
         # Update waktu terakhir sensor ES, C1, C2 aktif dan simpan sensor pertama yang aktif
