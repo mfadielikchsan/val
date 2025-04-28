@@ -67,14 +67,14 @@ try:
         if jb_state == GPIO.LOW and not jb_mode:
             jb_active_time = current_time
             jb_mode = True
-            print("J-Box triggered, entering 30s mode.")
+            print("J-Box triggered, entering 35s mode.")
 
-        # Jika dalam mode J-Box 30 detik
+        # Jika dalam mode J-Box 35 detik
         if jb_mode:
-            if current_time - jb_active_time <= 30:
+            if current_time - jb_active_time <= 35:
                 current_status = "16"  # Status untuk J-Box
             else:
-                jb_mode = False  # Reset jb_mode setelah 30 detik selesai
+                jb_mode = False  # Reset jb_mode setelah 35 detik selesai
 
         if not jb_mode:  # Kalau tidak dalam mode J-Box, baru cek sensor biasa
             # Update waktu terakhir sensor ES, C1, C2 aktif dan simpan sensor pertama yang aktif
