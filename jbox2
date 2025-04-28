@@ -69,7 +69,7 @@ try:
             jb_mode = True
             print("J-Box triggered, entering 30s mode.")
 
-        # Jika dalam mode J-Box 25 detik
+        # Jika dalam mode J-Box 30 detik
         if jb_mode:
             if current_time - jb_active_time <= 30:
                 current_status = "16"  # Status untuk J-Box
