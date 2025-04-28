@@ -71,7 +71,7 @@ try:
 
         # Jika dalam mode J-Box 25 detik
         if jb_mode:
-            if current_time - jb_active_time <= 25:
+            if current_time - jb_active_time <= 30:
                 current_status = "16"  # Status untuk J-Box
             else:
                 jb_mode = False  # Reset jb_mode setelah 25 detik selesai
