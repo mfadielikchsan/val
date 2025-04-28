@@ -7,8 +7,8 @@ TD = 26  # Tape Defect
 ES = 27  # Element Stitch
 C1 = 16  # Camera 1
 C2 = 5   # Camera 2
-JB = 24  # J-Box
 MT = 6   # Motor running sensor
+JB = 24  # J-Box
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -18,8 +18,8 @@ GPIO.setup(TD, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(ES, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(C1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.setup(C2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(JB, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(MT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(JB, GPIO.IN, pull_up_down=GPIO.PUD_UP)  
 
 mesin = 'CH0045'
 
@@ -38,15 +38,19 @@ def send_data(param):
 # Variable untuk tracking status terakhir & waktu terakhir pengiriman
 last_sent_status = None
 last_sent_time = time.time()
-last_sent_sensor = None  
+last_sent_sensor = None  # Untuk memantau sensor terakhir yang mengirimkan data
 
 # Variable untuk menyimpan waktu terakhir sensor ES, C1, C2 aktif
-first_triggered_sensor = None  
-first_trigger_time = None  
-delay_threshold = 7.5  
+last_es_time = 0
+last_c1_time = 0
+last_c2_time = 0
+first_triggered_sensor = None  # Menyimpan sensor pertama yang aktif dalam 7.5 detik
+first_trigger_time = None  # Menyimpan waktu pertama kali ada sensor aktif dalam 7.5 detik
+delay_threshold = 7.5  # Waktu maksimal untuk menentukan sensor pertama
 
-# Variable untuk memantau apakah JB sudah aktif sebelum motor berhenti
-jb_triggered_before_motor_stop = False
+# Variable tambahan untuk J-Box
+jb_active_time = 0
+jb_mode = False
 
 try:
     while True:
@@ -59,52 +63,59 @@ try:
         jb_state = GPIO.input(JB)
         current_time = time.time()
 
-        # Deteksi apakah JB terpicu sebelum motor mati
-        if jb_state == GPIO.LOW:
-            jb_triggered_before_motor_stop = True  # Tandai bahwa JB aktif sebelum motor mati
+        # Cek apakah ada trigger dari J-Box
+        if jb_state == GPIO.LOW and not jb_mode:
+            jb_active_time = current_time
+            jb_mode = True
+            print("J-Box triggered, entering 25s mode.")
 
-        # Update waktu terakhir sensor ES, C1, C2 aktif dan simpan sensor pertama yang aktif
-        if es_state == GPIO.HIGH and first_triggered_sensor is None:
-            first_triggered_sensor = "12"
-            first_trigger_time = current_time
-
-        if c1_state == GPIO.HIGH and first_triggered_sensor is None:
-            first_triggered_sensor = "13"
-            first_trigger_time = current_time
-
-        if c2_state == GPIO.HIGH and first_triggered_sensor is None:
-            first_triggered_sensor = "14"
-            first_trigger_time = current_time
-
-        # Reset first_triggered_sensor jika lebih dari 7.5 detik sejak sensor pertama aktif
-        if first_trigger_time and (current_time - first_trigger_time > delay_threshold):
-            first_triggered_sensor = None
-            first_trigger_time = None
-
-        # Tentukan status saat ini
-        if mt_state == GPIO.HIGH:  # Motor running
-            if first_triggered_sensor:
-                current_status = first_triggered_sensor
-                last_sent_sensor = first_triggered_sensor
+        # Jika dalam mode J-Box 25 detik
+        if jb_mode:
+            if current_time - jb_active_time <= 25:
+                current_status = "16"  # Status untuk J-Box
             else:
-                current_status = "15"  # Motor running
-                last_sent_sensor = "15"
-        else:
-            # Jika motor mati, periksa apakah JB sempat aktif sebelum motor mati
-            if jb_triggered_before_motor_stop:
-                current_status = "17"  # JB aktif sebelum motor mati
-                last_sent_sensor = "17"
-                jb_triggered_before_motor_stop = False  # Reset JB trigger agar tidak terus-menerus dikirim
-            elif td_state == GPIO.HIGH:
-                current_status = "11"  # TD  
-                last_sent_sensor = "11"
+                jb_mode = False  # Reset jb_mode setelah 25 detik selesai
+
+        if not jb_mode:  # Kalau tidak dalam mode J-Box, baru cek sensor biasa
+            # Update waktu terakhir sensor ES, C1, C2 aktif dan simpan sensor pertama yang aktif
+            if es_state == GPIO.HIGH and first_triggered_sensor is None:
+                first_triggered_sensor = "12"
+                first_trigger_time = current_time
+
+            if c1_state == GPIO.HIGH and first_triggered_sensor is None:
+                first_triggered_sensor = "13"
+                first_trigger_time = current_time
+
+            if c2_state == GPIO.HIGH and first_triggered_sensor is None:
+                first_triggered_sensor = "14"
+                first_trigger_time = current_time
+
+            # Reset first_triggered_sensor jika lebih dari 7.5 detik sejak sensor pertama aktif
+            if first_trigger_time and (current_time - first_trigger_time > delay_threshold):
+                first_triggered_sensor = None
+                first_trigger_time = None
+
+            # Tentukan status saat ini
+            if mt_state == GPIO.HIGH:  # Motor running
+                if first_triggered_sensor:
+                    current_status = first_triggered_sensor
+                    last_sent_sensor = first_triggered_sensor
+                else:
+                    current_status = "15"  # Motor running
+                    last_sent_sensor = "15"
             else:
-                if last_sent_sensor == "15":
-                    if last_sent_sensor in ["12", "13", "14"]:
-                        current_status = last_sent_sensor  # Tetap gunakan status sebelumnya
-                    else:
-                        current_status = "10"  # Not Found hanya jika sebelumnya bukan dari sensor
-                        last_sent_sensor = "10"
+                # Jika motor mati
+                if td_state == GPIO.HIGH:
+                    current_status = "11"  # TD  
+                    last_sent_sensor = "11"
+                else:
+                    if last_sent_sensor == "15":
+                        # Jika mesin tetap mati setelah 7.5 detik, tetap gunakan status terakhir sensor
+                        if last_sent_sensor in ["12", "13", "14"]:
+                            current_status = last_sent_sensor  # Tetap gunakan status sebelumnya
+                        else:
+                            current_status = "10"  # Not Found hanya jika sebelumnya bukan dari sensor
+                            last_sent_sensor = "10"
 
         # Kirim data setiap 10 detik atau jika status berubah
         if current_status != last_sent_status or (current_time - last_sent_time >= 10):
